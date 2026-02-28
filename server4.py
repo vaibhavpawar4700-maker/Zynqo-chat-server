@@ -1,67 +1,53 @@
 import socket
 import threading
+import os
 
-HOST = "127.0.0.1"
-PORT = 12345
+HOST = "0.0.0.0"
+PORT = int(os.environ.get("PORT", 10000))
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
 server.listen()
 
-clients = {}
-usernames = []
+clients = []
+names = []
+
+print("Server started on port", PORT)
 
 
-def broadcast_users():
-    users = ",".join(usernames)
-    for client in clients.values():
-        client.send(f"USERS:{users}".encode())
+def broadcast(message):
+    for client in clients:
+        client.send(message)
 
 
-def handle(client, username):
+def handle(client):
     while True:
         try:
-            message = client.recv(1024).decode()
-
-            if message.startswith("@"):
-                target, msg = message.split(":", 1)
-                target_user = target.replace("@", "")
-
-                if target_user in clients:
-                    clients[target_user].send(
-                        f"{username}: {msg}".encode()
-                    )
-            else:
-                for user, conn in clients.items():
-                    conn.send(f"{username}: {message}".encode())
-
+            message = client.recv(1024)
+            broadcast(message)
         except:
-            del clients[username]
-            usernames.remove(username)
-            broadcast_users()
+            index = clients.index(client)
+            clients.remove(client)
             client.close()
+            name = names[index]
+            names.remove(name)
             break
 
 
 def receive():
-    print("Server started...")
-
     while True:
         client, address = server.accept()
-        print("Connected:", address)
+        print("Connected with", str(address))
 
         client.send("NAME".encode())
-        username = client.recv(1024).decode()
+        name = client.recv(1024).decode()
 
-        clients[username] = client
-        usernames.append(username)
+        names.append(name)
+        clients.append(client)
 
-        broadcast_users()
+        print(name, "joined")
 
-        thread = threading.Thread(
-            target=handle,
-            args=(client, username)
-        )
+        thread = threading.Thread(target=handle, args=(client,))
         thread.start()
 
 
