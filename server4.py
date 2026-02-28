@@ -3,7 +3,7 @@ import threading
 import os
 
 HOST = "0.0.0.0"
-PORT = int(os.environ.get("PORT", 10000))
+PORT = int(os.environ.get("PORT", 12345))
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
@@ -52,3 +52,4 @@ def receive():
 
 
 receive()
+
