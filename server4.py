@@ -1,19 +1,15 @@
 import socket
 import threading
-import os
 
 HOST = "0.0.0.0"
-PORT = int(os.environ.get("PORT", 10000))
+PORT = 12345
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
 server.listen()
 
-print("🚀 Zynqo Server Started...")
-
 clients = []
 usernames = []
-
 
 def broadcast(message):
     for client in clients:
@@ -22,8 +18,11 @@ def broadcast(message):
         except:
             pass
 
+def send_user_list():
+    users = "USERS:" + ",".join(usernames)
+    broadcast(users.encode())
 
-def handle_client(client):
+def handle(client):
     while True:
         try:
             message = client.recv(1024)
@@ -32,29 +31,31 @@ def handle_client(client):
             index = clients.index(client)
             clients.remove(client)
             client.close()
+
             username = usernames[index]
             usernames.remove(username)
-            broadcast(f"{username} left chat".encode())
+
+            send_user_list()
             break
 
-
 def receive():
+    print("Server started...")
+
     while True:
         client, address = server.accept()
-        print("Connected:", address)
+        print(f"Connected with {str(address)}")
 
-        client.send("USERNAME".encode())
+        client.send("NAME".encode())
         username = client.recv(1024).decode()
 
         usernames.append(username)
         clients.append(client)
 
-        print("Username:", username)
+        print(f"Username is {username}")
 
-        broadcast(f"{username} joined chat!".encode())
+        send_user_list()
 
-        thread = threading.Thread(target=handle_client, args=(client,))
+        thread = threading.Thread(target=handle, args=(client,))
         thread.start()
-
 
 receive()
