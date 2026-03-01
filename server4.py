@@ -3,24 +3,27 @@ import threading
 import os
 
 HOST = "0.0.0.0"
-PORT = int(os.environ.get("PORT", 12345))
+PORT = int(os.environ.get("PORT", 10000))
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
 server.listen()
 
-clients = []
-names = []
+print("🚀 Zynqo Server Started...")
 
-print("Server started on port", PORT)
+clients = []
+usernames = []
 
 
 def broadcast(message):
     for client in clients:
-        client.send(message)
+        try:
+            client.send(message)
+        except:
+            pass
 
 
-def handle(client):
+def handle_client(client):
     while True:
         try:
             message = client.recv(1024)
@@ -29,27 +32,29 @@ def handle(client):
             index = clients.index(client)
             clients.remove(client)
             client.close()
-            name = names[index]
-            names.remove(name)
+            username = usernames[index]
+            usernames.remove(username)
+            broadcast(f"{username} left chat".encode())
             break
 
 
 def receive():
     while True:
         client, address = server.accept()
-        print("Connected with", str(address))
+        print("Connected:", address)
 
-        client.send("NAME".encode())
-        name = client.recv(1024).decode()
+        client.send("USERNAME".encode())
+        username = client.recv(1024).decode()
 
-        names.append(name)
+        usernames.append(username)
         clients.append(client)
 
-        print(name, "joined")
+        print("Username:", username)
 
-        thread = threading.Thread(target=handle, args=(client,))
+        broadcast(f"{username} joined chat!".encode())
+
+        thread = threading.Thread(target=handle_client, args=(client,))
         thread.start()
 
 
 receive()
-
