@@ -1,11 +1,13 @@
 import asyncio
 import websockets
 import json
+import os
 
-clients = {}   # username : websocket
+clients = {}  # username : websocket
 
 
 async def handler(websocket):
+    username = None
     try:
         username = await websocket.recv()
         clients[username] = websocket
@@ -15,17 +17,22 @@ async def handler(websocket):
 
         async for message in websocket:
             data = json.loads(message)
+
             target = data["to"]
             text = data["msg"]
             sender = data["from"]
 
             if target in clients:
                 await clients[target].send(
-                    json.dumps({"from": sender, "msg": text})
+                    json.dumps({
+                        "from": sender,
+                        "msg": text
+                    })
                 )
 
     except:
         pass
+
     finally:
         if username in clients:
             del clients[username]
@@ -43,7 +50,8 @@ async def send_users():
 
 
 async def main():
-    async with websockets.serve(handler, "0.0.0.0", 10000):
+    port = int(os.environ.get("PORT", 10000))
+    async with websockets.serve(handler, "0.0.0.0", port):
         print("Server started")
         await asyncio.Future()
 
