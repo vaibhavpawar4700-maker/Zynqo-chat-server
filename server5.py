@@ -1,5 +1,6 @@
 import asyncio
 import websockets
+import os
 
 clients = set()
 
@@ -9,10 +10,15 @@ async def handler(websocket):
         async for message in websocket:
             for client in clients:
                 await client.send(message)
+    except:
+        pass
     finally:
         clients.remove(websocket)
 
-start_server = websockets.serve(handler, "0.0.0.0", 10000)
+async def main():
+    port = int(os.environ.get("PORT", 10000))
+    async with websockets.serve(handler, "0.0.0.0", port):
+        print("Server started")
+        await asyncio.Future()  # run forever
 
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+asyncio.run(main())
